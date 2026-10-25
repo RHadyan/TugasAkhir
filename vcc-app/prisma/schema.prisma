@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Locale {
+  id
+  en
+}
+
+// Model untuk Negara
+model Country {
+  id        String    @id @default(cuid())
+  name      String    @unique // Nama negara
+  flagImage String    // URL/path gambar bendera negara
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // Relasi ke Program
+  programs     Program[]
+  translations CountryTranslation[]
+
+  @@map("countries")
+}
+
+model CountryTranslation {
+  id        String   @id @default(cuid())
+  countryId String
+  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  locale    Locale
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([countryId, locale])
+  @@index([locale])
+  @@map("country_translations")
+}
+
+// Model untuk Program Kerja Sama
+model Program {
+  id                  String   @id @default(cuid())
+  title               String   // Judul program
+  thumbnail           String   // URL/path thumbnail program
+  shortDescription    String   @db.Text // Deskripsi singkat program
+  description         String   @db.Text // Deskripsi lengkap program
+  
+  // Relasi ke negara
+  countryId           String
+  country             Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  
+  // Program studi yang bisa apply (JSON array of strings)
+  eligibleStudyPrograms Json @default("[]") // Contoh: ["Teknik Informatika", "Sistem Informasi", "Manajemen"]
+  
+  // Objectives
+  // [{ sticker: string, title: string, description: string }]
+  objectives          Json     @default("[]") 
+  
+  // Warna Utama Program (Hex or class name, but hex is safer)
+  mainColor           String   @default("#000000") // Default black or whatever
+  
+  // Timeline (Alur)
+  timelineDescription String? @db.Text
+  // [{ title: string, description: string, image: string?, order: number }]
+  timeline            Json     @default("[]")
+ 
+  // Scholarship
+  scholarshipDescription String? @db.Text 
+  // [{ sticker: string, title: string, description: string, image: string? }]
+  scholarships        Json     @default("[]")
+
+  // Contact Person
+  // [{ email: string, phoneNumber: string }]
+  contactPersons      Json     @default("[]")
+
+  // Custom Sections - array of objects
+  // Format: [{ title: string, description: string, layout: 'grid' | 'carousel', cards: [{ title: string, description: string, image: string }] }]
+  customSections      Json     @default("[]")
+
+  // Gallery - array of objects
+  // Format: [{ imageUrl: string, title: string, shortDescription: string }]
+  gallery             Json     @default("[]") // Array of gallery objects
+  
+  // Media Sosial - flexible object
+  // Format: { facebook: string, instagram: string, twitter: string, ... } (bebas)
+  socialMedia         Json     @default("{}") // Flexible object for social media links
+  
+  // Metadata
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  publishedAt         DateTime? // Untuk draft/publish functionality
+  isPublished         Boolean  @default(false)
+
+  translations        ProgramTranslation[]
+  
+  @@map("programs")
+  @@index([countryId])
+  @@index([isPublished])
+}
+
+model ProgramTranslation {
+  id                     String   @id @default(cuid())
+  programId              String
+  program                Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  locale                 Locale
+  title                  String?
+  shortDescription       String?  @db.Text
+  description            String?  @db.Text
+  timelineDescription    String?  @db.Text
+  scholarshipDescription String?  @db.Text
+  objectives             Json     @default("[]")
+  timeline               Json     @default("[]")
+  scholarships           Json     @default("[]")
+  customSections         Json     @default("[]")
+  gallery                Json     @default("[]")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([programId, locale])
+  @@index([locale])
+  @@map("program_translations")
+}
